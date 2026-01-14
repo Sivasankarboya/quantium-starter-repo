@@ -1,24 +1,29 @@
 import pandas as pd
-import glob
 
-csv_files = glob.glob("data/*.csv")
+# Load all CSV files
+df0 = pd.read_csv("data/daily_sales_data_0.csv")
+df1 = pd.read_csv("data/daily_sales_data_1.csv")
+df2 = pd.read_csv("data/daily_sales_data_2.csv")
 
-df_list = []
-for file in csv_files:
-    df = pd.read_csv(file)
-    df_list.append(df)
+# Combine all data
+df = pd.concat([df0, df1, df2], ignore_index=True)
 
+# Convert date to datetime
+df["date"] = pd.to_datetime(df["date"])
 
-combined_df = pd.concat(df_list, ignore_index=True)
+# Convert price from "$3.00" → 3.00
+df["price"] = df["price"].replace(r"[\$,]", "", regex=True).astype(float)
 
-pink_df = combined_df[combined_df["product"] == "Pink Morsel"]
+# Calculate sales
+df["sales"] = df["price"] * df["quantity"]
 
-pink_df["sales"] = pink_df["quantity"] * pink_df["price"]
+# Filter only Pink Morsel (important for business question)
+df = df[df["product"].str.lower() == "pink morsel"]
 
+# Group by date and sum sales
+processed_df = df.groupby("date", as_index=False)["sales"].sum()
 
-final_df = pink_df[["sales", "date", "region"]]
+# Save processed file
+processed_df.to_csv("data/processed_sales_data.csv", index=False)
 
-
-final_df.to_csv("output.csv", index=False)
-
-print("✅ Data processing completed")
+print("✅ processed_sales_data.csv created successfully")
